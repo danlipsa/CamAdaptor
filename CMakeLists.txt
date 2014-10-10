@@ -11,5 +11,5 @@ if(NOT MPI_Fortran_LIBRARIES)
   find_package(MPI)
 endif()
 
-ADD_LIBRARY(cam_catalyst_adapter catalyst_adapter.f90 create_data.cxx)
+ADD_LIBRARY(cam_catalyst_adapter catalyst_adapter.F90 create_data.cxx)
 TARGET_LINK_LIBRARIES(cam_catalyst_adapter vtkPVPythonCatalyst ${MPI_Fortran_LIBRARIES})
