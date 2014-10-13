@@ -11,5 +11,8 @@ if(NOT MPI_Fortran_LIBRARIES)
   find_package(MPI)
 endif()
 
-ADD_LIBRARY(cam_catalyst_adapter catalyst_adapter.F90 create_data.cxx)
+set(CAM_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/../" CACHE PATH "Path to CAM build directory")
+include_directories(${CAM_BUILD_DIR})
+
+ADD_LIBRARY(cam_catalyst_adapter SHARED cam_catalyst_adapter.F90 create_data.cxx)
 TARGET_LINK_LIBRARIES(cam_catalyst_adapter vtkPVPythonCatalyst ${MPI_Fortran_LIBRARIES})
