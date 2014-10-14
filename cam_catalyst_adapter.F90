@@ -31,7 +31,7 @@ CONTAINS
     ! Locals
     !
     write(iulog,'(a13)') "catalyst_init"
-    call coprocessorinitializewithpython("catalyst_coprocess.py",21)
+    !call coprocessorinitializewithpython("catalyst_coprocess.py",21)
  end subroutine catalyst_init
 
 !==============================================================================
@@ -62,7 +62,7 @@ CONTAINS
     ! Locals
     !
     write(iulog,'(a17)') "catalyst_finalize"
-    call coprocessorfinalize()
+    !call coprocessorfinalize()
  end subroutine catalyst_finalize
 
 !==============================================================================

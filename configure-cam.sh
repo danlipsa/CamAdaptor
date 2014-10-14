@@ -7,10 +7,13 @@ CAM_ROOT=/home/danlipsa/src/cesm1_2_1
 camcfg=$CAM_ROOT/models/atm/cam/bld
 
 # serial
-#$camcfg/configure -fc gfortran -dyn fv -hgrid 10x15 -nospmd -nosmp -debug -test
+$camcfg/configure -fc gfortran -dyn fv -hgrid 10x15 -nospmd -nosmp -debug -catalyst -test
+
 # SPMD (mpi)
-$camcfg/configure -fc mpif90 -fc_type gnu -cc mpicc -dyn fv -hgrid 10x15 -ntasks 6 -debug -nosmp -catalyst -test
+# -dyn (dynamical core) (default): fv
+# - phys (physics package) (default): cam5
+# - chem (prognostic chemistry package) (default): trop_mam3
+#$camcfg/configure -fc mpif90 -fc_type gnu -cc mpicc -dyn fv -hgrid 10x15 -ntasks 2 -debug -nosmp -catalyst -test
+
 # SMP (multi-threading)
 #$camcfg/configure -fc=gfortran -dyn fv -hgrid 10x15 -nospmd -nthreads 6 -test
-
-# make -j8 | tee make.out
