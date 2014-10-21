@@ -1,0 +1,96 @@
+module cam_catalyst_adapter
+
+  use cam_logfile,     only: iulog
+  use shr_kind_mod,    only: r8 => SHR_KIND_R8
+  use cam_history_support, only: hentry, max_chars
+
+  !
+  ! !PUBLIC TYPES:
+  implicit none
+  save
+  private ! except
+
+  !--------------------------------------------------------------------------
+  ! Public interfaces
+  !--------------------------------------------------------------------------
+
+  public :: catalyst_init
+  public :: catalyst_coprocess
+  public :: catalyst_finalize
+
+  !
+  !================================================================================
+CONTAINS
+  !================================================================================
+
+  subroutine catalyst_init()
+
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+
+    !
+    ! Locals
+    !
+    write(iulog,'(a13)') "catalyst_init"
+    call coprocessorinitializewithpython("@CMAKE_BINARY_DIR@/catalyst_coprocess.py",@BINARY_DIR_LENGTH@ + 22)
+  end subroutine catalyst_init
+
+  !==============================================================================
+
+  subroutine catalyst_coprocess(nstep, time, dim, lonCoord, latCoord, levCoord, fieldIndex, fieldIndexSize, fieldList)
+    use ppgrid,       only: pver
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+    integer :: nstep               ! current timestep number
+    real(kind=8) :: time           ! current time
+    integer, dimension(1:3) :: dim ! dimensions: lon, lat, lev
+    real(r8), allocatable :: lonCoord(:)
+    real(r8), pointer :: latCoord(:)
+    real(r8) :: levCoord(pver)
+    integer, allocatable :: fieldIndex(:)
+    integer :: fieldIndexSize
+    type(hentry), pointer :: fieldList(:)
+    integer :: i
+    character(len=max_chars) :: fieldName ! local copy of field name
+    !
+    ! Locals
+    !
+    integer :: flag
+   
+    write(iulog,'(a20, i5.2, f5.2)') "catalyst_coprocess: ", nstep, time
+    call requestdatadescription(nstep, time, flag)
+    if (flag .ne. 0) then
+       call needtocreategrid(flag)
+       if (flag .ne. 0) then
+          call create_grid(dim, lonCoord, latCoord, levCoord)
+       end if
+       do i=1,fieldIndexSize
+          fieldName = fieldList(fieldIndex(i))%field%name
+          call add_field(trim(fieldName)//char(0))
+       enddo
+       call coprocess()
+    end if
+  end subroutine catalyst_coprocess
+
+!==============================================================================
+  subroutine catalyst_finalize()
+
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+
+    !
+    ! Locals
+    !
+    write(iulog,'(a17)') "catalyst_finalize"
+    call coprocessorfinalize()
+ end subroutine catalyst_finalize
+
+!==============================================================================
+
+end module cam_catalyst_adapter
