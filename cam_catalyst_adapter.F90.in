@@ -19,9 +19,9 @@ module cam_catalyst_adapter
   public :: catalyst_finalize
 
   !
-  !================================================================================
+  !==========================================================================
 CONTAINS
-  !================================================================================
+  !==========================================================================
 
   subroutine catalyst_init()
 
@@ -34,34 +34,39 @@ CONTAINS
     ! Locals
     !
     write(iulog,'(a13)') "catalyst_init"
-    call coprocessorinitializewithpython("@CMAKE_BINARY_DIR@/catalyst_coprocess.py",@BINARY_DIR_LENGTH@ + 22)
+    call coprocessorinitializewithpython(&
+         "@CMAKE_BINARY_DIR@/catalyst_coprocess.py",@BINARY_DIR_LENGTH@ + 22)
   end subroutine catalyst_init
 
-  !==============================================================================
+  !===========================================================================
 
-  subroutine catalyst_coprocess(nstep, time, dim, lonCoord, latCoord, levCoord, fieldIndex, fieldIndexSize, fieldList)
+  subroutine catalyst_coprocess(nstep, time, dim, &
+                                lonCoord, latCoord, levCoord, &
+                                fieldIndex, fieldIndexSize, fieldList)
     use ppgrid,       only: pver
     !-----------------------------------------------------------------------
     !
     ! Arguments
     !
-    integer :: nstep               ! current timestep number
-    real(kind=8) :: time           ! current time
-    integer, dimension(1:3) :: dim ! dimensions: lon, lat, lev
-    real(r8), allocatable :: lonCoord(:)
-    real(r8), pointer :: latCoord(:)
-    real(r8) :: levCoord(pver)
-    integer, allocatable :: fieldIndex(:)
-    integer :: fieldIndexSize
-    type(hentry), pointer :: fieldList(:)
-    integer :: i
-    character(len=max_chars) :: fieldName ! local copy of field name
+    integer, intent(in)                :: nstep ! current timestep number
+    real(kind=8),intent(in)            :: time  ! current time
+    integer, dimension(1:3),intent(in) :: dim   ! dimensions: lon, lat, lev
+    real(r8), allocatable,intent(in)   :: lonCoord(:)
+    real(r8), pointer, intent(in)      :: latCoord(:)
+    real(r8),intent(in)                :: levCoord(pver)
+    integer, allocatable,intent(in)    :: fieldIndex(:)
+    integer,intent(in)                 :: fieldIndexSize
+    type(hentry), pointer,intent(in)   :: fieldList(:)
     !
     ! Locals
     !
     integer :: flag
+    integer                  :: i
+    character(len=max_chars) :: fieldName ! local copy of field name
+
    
-    write(iulog,'(a20, i5.2, f5.2)') "catalyst_coprocess: ", nstep, time
+    write(iulog,'(a20, i5.2, f5.2)') &
+         "catalyst_coprocess: ", nstep, time
     call requestdatadescription(nstep, time, flag)
     if (flag .ne. 0) then
        call needtocreategrid(flag)

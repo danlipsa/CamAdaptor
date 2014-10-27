@@ -1,8 +1,23 @@
 ! This routine uses modules and variables from cam5 which is an executable,
 ! so this routine must be linked in.
+
+logical function has4Dims(t, f)
+  !-----------------------------------------------------------------------
+  !
+  ! Input arguments
+  !
+  integer, intent(in) :: t,f            ! tape and field
+
+  ! see cam_history.F90:3855
+  has4Dims = associated(tape(t)%hlist(f)%field%mdims) .and. &
+       size(tape(t)%hlist(f)%field%mdims) == 1
+end function has4Dims
+
+
 subroutine build_params_and_coprocess()
   use time_manager, only: get_nstep, get_curr_time
-  use dyn_grid,     only: get_horiz_grid_dim_d, get_dyn_grid_parm_real1d, get_dyn_grid_parm
+  use dyn_grid,     only: get_horiz_grid_dim_d, get_dyn_grid_parm_real1d, &
+                          get_dyn_grid_parm
   use hycoef,       only: hyam, hybm, ps0
   use cam_history_support, only : registeredmdims, hist_mdims
   use ppgrid,       only: pcols, pver
@@ -62,14 +77,15 @@ subroutine build_params_and_coprocess()
   allocate(fieldIndex(nflds(t) + 1))
   i = 0
   do f=1,nflds(t)
-     if (associated(tape(t)%hlist(f)%field%mdims) .and. size(tape(t)%hlist(f)%field%mdims) == 1) then
+     if (has4Dims(t, f)) then
         i = i + 1
         fieldIndex(i) = f
         !fname_tmp = strip_suffix(tape(t)%hlist(f)%field%name)        
         !write(iulog, '(a20)') trim(fname_tmp)
      endif
   enddo
-  call catalyst_coprocess(nstep, time, dim, alon, latdeg, alev, fieldIndex, i, tape(t)%hlist)
+  call catalyst_coprocess(nstep, time, dim, alon, latdeg, alev, &
+                          fieldIndex, i, tape(t)%hlist)
   deallocate(fieldIndex)
   deallocate(alon)
   call t_stopf ('catalyst_coprocess')

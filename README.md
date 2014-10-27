@@ -75,3 +75,15 @@ adapter:
     .nc file) are listed in:
    
    <http://www.cesm.ucar.edu/models/cesm1.2/cam/docs/ug5_3/hist_flds_fv_cam5.html>
+
+5. If you want to debug the simulation you need to run
+
+        ~/src/cesm1_2_1/models/atm/cam/cam_catalyst_adapter/gen-cam.sh d
+
+    This command copies a list of .F90.in to the corresponding .F90
+    so that gdb works correctly over these files. When you need to rebuild
+    run:
+    
+        ~/src/cesm1_2_1/models/atm/cam/cam_catalyst_adapter/gen-cam.sh g
+
+

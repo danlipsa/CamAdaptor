@@ -2,6 +2,7 @@
 
 // CoProcessor specific headers
 #include <iostream>
+#include <sstream>
 #include "vtkCPDataDescription.h"
 #include "vtkCPInputDataDescription.h"
 #include "vtkCPProcessor.h"
@@ -24,18 +25,20 @@ extern "C" void create_grid_(
   int* dim, 
   double* lonCoord, double* latCoord, double* levCoord)
 {
-  std::cerr << "\nDimensions: ";
-  std::cerr << dim[0] << ", " << dim[1] << ", " << dim[2] << std::endl;
-  std::cerr << "lon: ";
+  std::ostringstream ostr;
+  ostr << "\nDimensions: ";
+  ostr << dim[0] << ", " << dim[1] << ", " << dim[2] << std::endl;
+  ostr << "lon: ";
   for (int i = 0; i < dim[0]; ++i)
-    std::cerr << lonCoord[i] << " ";
-  std::cerr << "\nlat: ";
+    ostr << lonCoord[i] << " ";
+  ostr << "\nlat: ";
   for (int i = 0; i < dim[1]; ++i)
-    std::cerr << latCoord[i] << " ";
-  std::cerr << "\nlev: ";
+    ostr << latCoord[i] << " ";
+  ostr << "\nlev: ";
   for (int i = 0; i < dim[2]; ++i)
-    std::cerr << levCoord[i] << " ";
-  std::cerr << endl;
+    ostr << levCoord[i] << " ";
+  ostr << endl;
+  std::cerr << ostr.str();
 }
 
 // Add field(s) to the data container.
