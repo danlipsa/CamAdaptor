@@ -1,8 +1,7 @@
 module cam_catalyst_adapter
-
-  use cam_logfile,     only: iulog
   use shr_kind_mod,    only: r8 => SHR_KIND_R8
-  use cam_history_support, only: hentry, max_chars
+  use physics_types,    only: physics_state
+  use ppgrid,       only: pcols
 
   !
   ! !PUBLIC TYPES:
@@ -14,9 +13,8 @@ module cam_catalyst_adapter
   ! Public interfaces
   !--------------------------------------------------------------------------
 
-  public :: catalyst_init
-  public :: catalyst_coprocess
-  public :: catalyst_finalize
+  public :: catalyst_init, catalyst_coprocess, catalyst_create_grid,&
+       catalyst_add_chunk, catalyst_finalize
 
   !
   !==========================================================================
@@ -33,16 +31,14 @@ CONTAINS
     !
     ! Locals
     !
-    write(iulog,'(a13)') "catalyst_init"
+    write(*,'(a)') "catalyst_init"
     call coprocessorinitializewithpython(&
          "@CMAKE_BINARY_DIR@/catalyst_coprocess.py",@BINARY_DIR_LENGTH@ + 22)
   end subroutine catalyst_init
 
-  !===========================================================================
-
-  subroutine catalyst_coprocess(nstep, time, dim, &
-                                lonCoord, latCoord, levCoord, &
-                                fieldIndex, fieldIndexSize, fieldList)
+  !===========================================================================  
+  function catalyst_create_grid(nstep, time, dim, &
+       lonCoord, latCoord, levCoord, nPoints2D, myRank) result(continueProcessing)
     use ppgrid,       only: pver
     !-----------------------------------------------------------------------
     !
@@ -54,31 +50,80 @@ CONTAINS
     real(r8), allocatable,intent(in)   :: lonCoord(:)
     real(r8), pointer, intent(in)      :: latCoord(:)
     real(r8),intent(in)                :: levCoord(pver)
-    integer, allocatable,intent(in)    :: fieldIndex(:)
-    integer,intent(in)                 :: fieldIndexSize
-    type(hentry), pointer,intent(in)   :: fieldList(:)
+    integer, intent(in)                :: nPoints2D
+    integer, intent(in)                :: myRank
+    logical                            :: continueProcessing
     !
     ! Locals
     !
     integer :: flag
-    integer                  :: i
-    character(len=max_chars) :: fieldName ! local copy of field name
+    integer                            :: i,c,j ! indexes
+    real(r8)                 :: transvar(1)
 
-   
-    write(iulog,'(a20, i5.2, f5.2)') &
-         "catalyst_coprocess: ", nstep, time
+    write(*,'(a, i5.2, f5.2)') "catalyst_create_grid: ", nstep, time
     call requestdatadescription(nstep, time, flag)
-    if (flag .ne. 0) then
+    continueProcessing = (flag .ne. 0)
+    if (continueProcessing) then
        call needtocreategrid(flag)
        if (flag .ne. 0) then
-          call create_grid(dim, lonCoord, latCoord, levCoord)
+          call cxx_create_grid(dim, lonCoord, latCoord, levCoord, nPoints2D, &
+               pcols, myRank)
        end if
-       do i=1,fieldIndexSize
-          fieldName = fieldList(fieldIndex(i))%field%name
-          call add_field(trim(fieldName)//char(0))
-       enddo
-       call coprocess()
     end if
+  end function catalyst_create_grid
+
+  !===========================================================================  
+  subroutine catalyst_add_chunk(nstep, time, phys_state, ncols)
+    use ppgrid,       only: pver
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+    integer, intent(in)                :: nstep ! current timestep number
+    real(kind=8),intent(in)            :: time  ! current time
+    type(physics_state), intent(in)    :: phys_state
+    integer, intent(in)                :: ncols
+    !
+    ! Locals
+    !
+    integer                            :: i,c,j ! indexes
+    real(r8)                           :: psTransVar(1), tTransVar(1), &
+         uTransVar(1), vTransVar(1)
+    real(r8)                           :: PI
+    real(r8), dimension(1:16)          :: latIndex, lonIndex
+  
+    PI=4.d0 * datan(1.d0)
+
+    latIndex = phys_state%lat / PI * 180
+    lonIndex = phys_state%lon / PI * 180
+    write(*, "(A, I4, A, I4,  A, I4, A, I4, A, I4)") &
+         "catalyst_add_chunk: lchnk=", phys_state%lchnk, &
+         " ncols=", ncols, &
+         " size(lat)=", size(phys_state%lat), &
+         " size(lon)=", size(phys_state%lon), &
+         " size(ps,1)=",  size(phys_state%ps, 1),  &
+         " size(t)=",   size(phys_state%t)
+    call cxx_add_chunk(nstep, ncols, &
+         phys_state%lon, phys_state%lat, &
+         transfer(phys_state%ps, psTransVar), &
+         transfer(phys_state%t, tTransVar), &
+         transfer(phys_state%u, uTransVar), &
+         transfer(phys_state%v, vTransVar))
+  end subroutine catalyst_add_chunk
+  !===========================================================================  
+  subroutine catalyst_coprocess(nstep, time)
+    use ppgrid,       only: pver
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+    integer, intent(in)                :: nstep ! current timestep number
+    real(kind=8),intent(in)            :: time  ! current time
+    !
+    ! Locals
+    !
+    write(*,'(a, i5.2, f5.2)') "catalyst_coprocess: ", nstep, time
+    call coprocess()
   end subroutine catalyst_coprocess
 
 !==============================================================================
@@ -92,7 +137,8 @@ CONTAINS
     !
     ! Locals
     !
-    write(iulog,'(a17)') "catalyst_finalize"
+    write(*,'(a)') "catalyst_finalize"
+    call cxx_finalize();
     call coprocessorfinalize()
  end subroutine catalyst_finalize
 

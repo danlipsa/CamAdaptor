@@ -1,12 +1,11 @@
 
-try: paraview.simple
-except: from paraview.simple import *
-
+from paraview.simple import *
 from paraview import coprocessing
 
 
 #--------------------------------------------------------------
 # Code generated from cpstate.py to create the CoProcessor.
+# ParaView 4.2.0-15-g46ac001 64 bits
 
 
 # ----------------------- CoProcessor definition -----------------------
@@ -14,14 +13,40 @@ from paraview import coprocessing
 def CreateCoProcessor():
   def _CreatePipeline(coprocessor, datadescription):
     class Pipeline:
-      filename_6_pvti = coprocessor.CreateProducer( datadescription, "input" )
+      # state file generated using paraview version 4.2.0-15-g46ac001
 
-      Slice1 = Slice( guiName="Slice1", Crinkleslice=0, SliceOffsetValues=[0.0], Triangulatetheslice=1, SliceType="Plane" )
-      Slice1.SliceType.Offset = 0.0
-      Slice1.SliceType.Origin = [0.0, -90.0, 0.0]
-      Slice1.SliceType.Normal = [0.0, 0.0, 1.0]
+      # ----------------------------------------------------------------
+      # setup the data processing pipelines
+      # ----------------------------------------------------------------
 
-      ParallelPolyDataWriter1 = coprocessor.CreateWriter( XMLPPolyDataWriter, "slice_%t.pvtp", 10 )
+      #### disable automatic camera reset on 'Show'
+      paraview.simple._DisableFirstRenderCameraReset()
+
+      # create a new 'NetCDF Reader'
+      # create a producer from a simulation input
+      h02D = coprocessor.CreateProducer(datadescription, 'input')
+
+      # create a new 'Parallel Image Data Writer'
+      h02DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h02D)
+      h02DWriter.FileName = 'h02D_%t.pvtu'
+
+      # register the writer with coprocessor
+      # and provide it with information such as the filename to use,
+      # how frequently to write the data, etc.
+      coprocessor.RegisterWriter(h02DWriter, filename='h02D_%t.pvtu', freq=10)
+
+      # create a new 'NetCDF Reader'
+      # create a producer from a simulation input
+      h03D = coprocessor.CreateProducer(datadescription, 'input3D')
+
+      # create a new 'Parallel Rectilinear Grid Writer'
+      h03DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h03D)
+      h03DWriter.FileName = 'h03D_%t.pvtu'
+
+      # register the writer with coprocessor
+      # and provide it with information such as the filename to use,
+      # how frequently to write the data, etc.
+      coprocessor.RegisterWriter(h03DWriter, filename='h03D_%t.pvtu', freq=10)
 
     return Pipeline()
 
@@ -30,7 +55,9 @@ def CreateCoProcessor():
       self.Pipeline = _CreatePipeline(self, datadescription)
 
   coprocessor = CoProcessor()
-  freqs = {'input': [10]}
+  # these are the frequencies at which the coprocessor updates.
+  freqs = {'input': [10], 
+           'input3D': [10]}
   coprocessor.SetUpdateFrequencies(freqs)
   return coprocessor
 
@@ -43,7 +70,7 @@ coprocessor = CreateCoProcessor()
 
 #--------------------------------------------------------------
 # Enable Live-Visualizaton with ParaView
-coprocessor.EnableLiveVisualization(False)
+coprocessor.EnableLiveVisualization(False, 1)
 
 
 # ---------------------- Data Selection method ----------------------
@@ -55,6 +82,7 @@ def RequestDataDescription(datadescription):
         # We are just going to request all fields and meshes from the simulation
         # code/adaptor.
         for i in range(datadescription.GetNumberOfInputDescriptions()):
+            print 'input dname ', datadescription.GetInputDescriptionName(i)
             datadescription.GetInputDescription(i).AllFieldsOn()
             datadescription.GetInputDescription(i).GenerateMeshOn()
         return
