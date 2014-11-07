@@ -12,7 +12,7 @@ DIR_NAME=`basename $pwd`
 CAM_BUILD=~/build/$DIR_NAME
 CSMDATA=~/src/cesm-data;export CSMDATA
 
-# Run the sim for 3 days, average every 12 hours
+# Run the sim for 1 days, average every 12 hours
 $camcfg/build-namelist -test -config $CAM_BUILD/config_cache.xml -namelist "&seq_timemgr_inparm stop_n=1 stop_option='ndays' / &cam_inparm  nhtfrq=-12, -24, -24, -24, -24, -24 hfilename_spec='%c.cam.h%t.%y-%m-%d-%s.nc' print_step_cost=.true. / "
 
 # Run the sim for 3 months, average every moth

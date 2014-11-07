@@ -32,8 +32,8 @@ CONTAINS
     ! Locals
     !
     write(*,'(a)') "catalyst_init"
-    call coprocessorinitializewithpython(&
-         "@CMAKE_BINARY_DIR@/catalyst_coprocess.py",@BINARY_DIR_LENGTH@ + 22)
+    call cxx_coprocessorinitializewithpython(&
+         "@CMAKE_BINARY_DIR@/catalyst_coprocess.py"//CHAR(0))
   end subroutine catalyst_init
 
   !===========================================================================  
@@ -61,10 +61,10 @@ CONTAINS
     real(r8)                 :: transvar(1)
 
     write(*,'(a, i5.2, f5.2)') "catalyst_create_grid: ", nstep, time
-    call requestdatadescription(nstep, time, flag)
+    call cxx_requestdatadescription(nstep, time, flag)
     continueProcessing = (flag .ne. 0)
     if (continueProcessing) then
-       call needtocreategrid(flag)
+       call cxx_needtocreategrid(flag)
        if (flag .ne. 0) then
           call cxx_create_grid(dim, lonCoord, latCoord, levCoord, nPoints2D, &
                pcols, myRank)
@@ -123,7 +123,7 @@ CONTAINS
     ! Locals
     !
     write(*,'(a, i5.2, f5.2)') "catalyst_coprocess: ", nstep, time
-    call coprocess()
+    call cxx_coprocess()
   end subroutine catalyst_coprocess
 
 !==============================================================================
@@ -139,7 +139,7 @@ CONTAINS
     !
     write(*,'(a)') "catalyst_finalize"
     call cxx_finalize();
-    call coprocessorfinalize()
+    call cxx_coprocessorfinalize()
  end subroutine catalyst_finalize
 
 !==============================================================================
