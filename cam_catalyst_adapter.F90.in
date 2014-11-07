@@ -99,8 +99,8 @@ CONTAINS
     write(*, "(A, I4, A, I4,  A, I4, A, I4, A, I4)") &
          "catalyst_add_chunk: lchnk=", phys_state%lchnk, &
          " ncols=", ncols, &
-         " size(lat)=", size(phys_state%lat), &
          " size(lon)=", size(phys_state%lon), &
+         " size(lat)=", size(phys_state%lat), &
          " size(ps,1)=",  size(phys_state%ps, 1),  &
          " size(t)=",   size(phys_state%t)
     call cxx_add_chunk(nstep, ncols, &

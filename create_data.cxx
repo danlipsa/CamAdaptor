@@ -35,12 +35,14 @@ namespace
 
   // 2d grid
   int g_rankArrayIndex2d = -1;
+  int g_coordArrayIndex2d = -1;
   int g_psArrayIndex = -1;
   vtkIdType* g_cellId2d;      // 2d array with cellId at lon x lat index
   vtkIdType* g_pointId2d;     // 2d array with pointIds at lon x lat index
 
   // 3d grid
   int g_rankArrayIndex3d = -1;
+  int g_coordArrayIndex3d = -1;
   int g_tArrayIndex = -1;
   int g_uArrayIndex = -1;
   int g_vArrayIndex = -1;
@@ -65,12 +67,92 @@ double toRadians(double deg)
   return deg * PI / 180.0;
 }
 
+double levelToRadius(double level)
+{
+  double maxLevel = g_level[g_dim[2] - 1];
+  return (maxLevel - level) / maxLevel;
+}
+
+double levelMinusPlus(int j, double* levMinus, double* levPlus)
+{
+  if (j == 0)
+    {
+    double step = (g_level[1] - g_level[0]);
+    *levMinus = g_level[j];
+    *levPlus = g_level[j] + step / 2;
+    }
+  else if (j == g_dim[2] - 1)
+    {
+    double step = (g_level[g_dim[2] - 1] - g_level[g_dim[2] - 2]);
+    *levMinus = g_level[j] - step / 2;
+    *levPlus = g_level[j];
+    }
+  else
+    {
+    *levMinus = g_level[j] - (g_level[j] - g_level[j-1]) / 2;
+    *levPlus = g_level[j] + (g_level[j+1] - g_level[j]) / 2;
+    }
+}
+
+double latitudeMinusPlus(int latIndex, double* latMinus, double* latPlus)
+{
+  double latDeg = -90 + g_latStep * latIndex;
+  if (latIndex == 0)
+    {
+    *latMinus = latDeg;
+    *latPlus = latDeg + g_latStep / 2;
+    }
+  else if (latIndex == g_dim[1] - 1)
+    {
+    *latMinus = latDeg - g_latStep / 2;
+    *latPlus = latDeg;
+    }
+  else
+    {
+    *latMinus = latDeg - g_latStep / 2;
+    *latPlus = latDeg + g_latStep / 2;
+    }
+}
+
+void rotateAroundYDeg(double degQ, double v[3], double r[3])
+{
+  double q = toRadians(degQ);
+  r[0] = v[2]*sin(q) + v[0]*cos(q);
+  r[1] = v[1];
+  r[2] = v[2]*cos(q) - v[0]*sin(q);
+}
+
+void rotateAroundZDeg(double degQ, double v[3], double r[3])
+{
+  double q = toRadians(degQ);
+  r[0] = v[0]*cos(q) - v[1]*sin(q);
+  r[1] = v[0]*sin(q) + v[1]*cos(q);
+  r[2] = v[2];
+}
+
+void sphericalToCartesian(double corner[3])
+{
+  double rotLon = corner[0];
+  double rotLat = corner[1];
+  double src[3] = {corner[2], 0, 0};
+  double r[3];
+  rotateAroundYDeg(-rotLat, src, r);
+  rotateAroundZDeg(rotLon, r, corner);
+  // std::cerr << "rotLon=" << rotLon
+  //           << " rotLat=" << rotLat
+  //           << " x=" << src[0]
+  //           << " xp=" << corner[0]
+  //           << " yp=" << corner[1]
+  //           << " zp=" << corner[2] << endl;
+}
+
 template<typename T>
-int addAttribute(vtkUnstructuredGrid* grid, const char* name, vtkIdType size)
+int addAttribute(vtkUnstructuredGrid* grid, const char* name,
+                 vtkIdType size, int nComponents)
 {
   vtkSmartPointer<T> a = vtkSmartPointer<T>::New();
-  a->SetNumberOfComponents(1);
-  a->SetNumberOfValues(size);
+  a->SetNumberOfComponents(nComponents);
+  a->SetNumberOfTuples(size);
   a->SetName(name);
   return grid->GetCellData()->AddArray(a);
 }
@@ -144,29 +226,24 @@ void addToGrid(vtkUnstructuredGrid* grid2d, vtkUnstructuredGrid* grid3d,
   double
     lonMinus = lonDeg - g_lonStep / 2,
     lonPlus = lonDeg + g_lonStep / 2,
-    latMinus = latDeg - g_latStep / 2,
-    latPlus = latDeg + g_latStep / 2;
-  double xMinus, xPlus, yMinus, yPlus, z;
-  if (gridType == RECTILINEAR)
-    {
-    xMinus = lonMinus;
-    xPlus = lonPlus;
-    yMinus = latMinus;
-    yPlus = latPlus;
-    z = 0;
-    }
-  else
-    {
-    
-    }
+    latMinus,
+    latPlus;
+  latitudeMinusPlus(latIndex, &latMinus, &latPlus);
   int cornerIndex[4][2] = {{lonIndex, latIndex},
                            {lonIndex, latIndex + 1},
                            {lonIndex + 1, latIndex + 1},
                            {lonIndex + 1, latIndex}};
-  double corner[4][2] = {{lonMinus, latMinus},
-                         {lonMinus, latPlus},
-                         {lonPlus, latPlus},
-                         {lonPlus, latMinus}};
+  double corner[4][3] = {{lonMinus, latMinus, 1},
+                         {lonMinus, latPlus, 1},
+                         {lonPlus, latPlus, 1},
+                         {lonPlus, latMinus, 1}};
+  if (gridType == SPHERE)
+    {
+    for (int i = 0; i < 4; ++i)
+      {
+      sphericalToCartesian(corner[i]);
+      }
+    }
   vtkIdType cornerId[4];
   for (int p = 0; p < 4; ++p)
     {
@@ -176,7 +253,8 @@ void addToGrid(vtkUnstructuredGrid* grid2d, vtkUnstructuredGrid* grid3d,
     if (id < 0)
       {
       id = g_pointId2d[pointIdIndex] = 
-        grid2d->GetPoints()->InsertNextPoint(corner[p][0], corner[p][1], 0);
+        grid2d->GetPoints()->InsertNextPoint(corner[p][0], corner[p][1], 
+                                             corner[p][2]);
       }
     cornerId[p] = id;
     }
@@ -188,41 +266,30 @@ void addToGrid(vtkUnstructuredGrid* grid2d, vtkUnstructuredGrid* grid3d,
   for (int j = 0; j < g_dim[2]; ++j)
     {
     double levMinus, levPlus;
-    if (j == 0)
-      {
-      double step = (g_level[1] - g_level[0]);
-      levMinus = g_level[j] - step / 2;
-      levPlus = g_level[j] + step / 2;
-      }
-    else if (j == g_dim[2] - 1)
-      {
-      double step = (g_level[g_dim[2] - 1] - g_level[g_dim[2] - 2]);
-      levMinus = g_level[j] - step / 2;
-      levPlus = g_level[j] + step / 2;
-      }
-    else
-      {
-      levMinus = g_level[j] - (g_level[j] - g_level[j-1]) / 2;
-      levPlus = g_level[j] + (g_level[j+1] - g_level[j]) / 2;
-      }
+    levelMinusPlus(j, &levMinus, &levPlus);
     int cornerIndex[8][3] = {{lonIndex,   latIndex,   j},
                              {lonIndex+1, latIndex,   j},
-                             {lonIndex,   latIndex+1, j},
                              {lonIndex+1, latIndex+1, j},
+                             {lonIndex,   latIndex+1, j},
                              {lonIndex,   latIndex,   j+1},
                              {lonIndex+1, latIndex,   j+1},
-                             {lonIndex,   latIndex+1, j+1},
-                             {lonIndex+1, latIndex+1, j+1}};
-
-    double corner[8][3] = {{lonMinus, latMinus, levMinus},
-                           {lonPlus, latMinus, levMinus},
-                           {lonMinus, latPlus, levMinus},
-                           {lonPlus, latPlus, levMinus},
-                           {lonMinus, latMinus, levPlus},
-                           {lonPlus, latMinus, levPlus},
-                           {lonMinus, latPlus, levPlus},
-                           {lonPlus, latPlus, levPlus}};
-
+                             {lonIndex+1, latIndex+1, j+1},
+                             {lonIndex,   latIndex+1, j+1}};
+    double corner[8][3] = {{lonMinus, latMinus, levelToRadius(levMinus)},
+                           {lonPlus, latMinus, levelToRadius(levMinus)},
+                           {lonPlus, latPlus, levelToRadius(levMinus)},
+                           {lonMinus, latPlus, levelToRadius(levMinus)},
+                           {lonMinus, latMinus, levelToRadius(levPlus)},
+                           {lonPlus, latMinus, levelToRadius(levPlus)},
+                           {lonPlus, latPlus, levelToRadius(levPlus)},
+                           {lonMinus, latPlus, levelToRadius(levPlus)}};
+    if (gridType == SPHERE)
+      {
+      for (int i = 0; i < 8; ++i)
+        {
+        sphericalToCartesian(corner[i]);
+        }
+      }
     vtkIdType cornerId[8];
     for (int p = 0; p < 8; ++p)
       {
@@ -242,7 +309,7 @@ void addToGrid(vtkUnstructuredGrid* grid2d, vtkUnstructuredGrid* grid3d,
         }
       cornerId[p] = id;
       }
-    currentCell = grid3d->InsertNextCell(VTK_VOXEL, 8, cornerId);
+    currentCell = grid3d->InsertNextCell(VTK_HEXAHEDRON, 8, cornerId);
     g_cellId3d[lonIndex + latIndex * g_dim[0] + j * g_dim[0] * g_dim[1]] = 
       currentCell;
     }
@@ -276,8 +343,10 @@ extern "C" void cxx_create_grid_(
   grid2d->SetPoints(points2d);
   grid2d->GetCells()->Initialize();
   grid2d->Allocate(g_nCells2d);
-  g_rankArrayIndex2d = addAttribute<vtkIntArray>(grid2d, "Rank", g_nCells2d);
-  g_psArrayIndex = addAttribute<vtkDoubleArray>(grid2d, "PS", g_nCells2d);
+  g_rankArrayIndex2d = addAttribute<vtkIntArray>(grid2d, "Rank", g_nCells2d, 1);
+  g_coordArrayIndex2d = addAttribute<vtkDoubleArray>(
+    grid2d, "Coord", g_nCells2d, 2);
+  g_psArrayIndex = addAttribute<vtkDoubleArray>(grid2d, "PS", g_nCells2d, 1);  
 
   vtkCPInputDataDescription* idd = g_coprocessorData->
     GetInputDescriptionByName("input");
@@ -313,13 +382,15 @@ extern "C" void cxx_create_grid_(
   grid3d->GetCells()->Initialize();
   grid3d->Allocate(g_nCells2d * g_dim[2]);
   g_rankArrayIndex3d = addAttribute<vtkIntArray>(
-    grid3d, "Rank", g_nCells2d * g_dim[2]);
+    grid3d, "Rank", g_nCells2d * g_dim[2], 1);
+  g_coordArrayIndex3d = addAttribute<vtkDoubleArray>(
+    grid3d, "Coord", g_nCells2d * g_dim[2], 3);
   g_tArrayIndex = addAttribute<vtkDoubleArray>(
-    grid3d, "T", g_nCells2d * g_dim[2]);
+    grid3d, "T", g_nCells2d * g_dim[2], 1);
   g_uArrayIndex = addAttribute<vtkDoubleArray>(
-    grid3d, "U", g_nCells2d * g_dim[2]);
+    grid3d, "U", g_nCells2d * g_dim[2], 1);
   g_vArrayIndex = addAttribute<vtkDoubleArray>(
-    grid3d, "V", g_nCells2d * g_dim[2]);
+    grid3d, "V", g_nCells2d * g_dim[2], 1);
   idd = g_coprocessorData->GetInputDescriptionByName("input3D");
   if (!idd)
     {
@@ -372,7 +443,7 @@ extern "C" void cxx_add_chunk_(
     // create points and cells
     for (int i = 0; i < *chunkSize; ++i)
       {
-      addToGrid(grid2d, grid3d, lonRad[i], latRad[i], RECTILINEAR);
+      addToGrid(grid2d, grid3d, lonRad[i], latRad[i], SPHERE);
       }
     }
 
@@ -385,8 +456,10 @@ extern "C" void cxx_add_chunk_(
   for (int i = 0; i < *chunkSize; ++i)
     {
     // 2d attributes
-    int lonIndex = round (toDegrees(lonRad[i]) / g_lonStep);
-    int latIndex = round((90 + toDegrees(latRad[i])) / g_latStep);
+    double lonDeg = toDegrees(lonRad[i]);
+    int lonIndex = round (lonDeg / g_lonStep);          // interval [0, 360]
+    double latDeg = toDegrees(latRad[i]);
+    int latIndex = round ((90 + latDeg) / g_latStep);   // interval [-90, 90]
     vtkIdType cellId = g_cellId2d[lonIndex + latIndex * g_dim[0]];
     if (cellId == -1)
       {
@@ -397,6 +470,8 @@ extern "C" void cxx_add_chunk_(
     vtkDoubleArray::SafeDownCast(
       grid2d->GetCellData()->GetArray(g_psArrayIndex))
       ->SetValue(cellId, psScalar[i]);
+    grid2d->GetCellData()->GetArray(g_coordArrayIndex2d)
+      ->SetTuple2(cellId, lonDeg, latDeg);
     vtkIntArray::SafeDownCast(
       grid2d->GetCellData()->GetArray(g_rankArrayIndex2d))
       ->SetValue(cellId, g_rank);
@@ -426,6 +501,8 @@ extern "C" void cxx_add_chunk_(
       vtkDoubleArray::SafeDownCast(
         grid3d->GetCellData()->GetArray(g_vArrayIndex))
         ->SetValue(cellId, vScalar[i + j*g_chunkCapacity]);
+      grid3d->GetCellData()->GetArray(g_coordArrayIndex3d)
+      ->SetTuple3(cellId, lonDeg, latDeg, g_level[j]);
       }
     }
 }
