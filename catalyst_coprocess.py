@@ -22,31 +22,31 @@ def CreateCoProcessor():
       #### disable automatic camera reset on 'Show'
       paraview.simple._DisableFirstRenderCameraReset()
 
-      # create a new 'NetCDF Reader'
-      # create a producer from a simulation input
+      # writer for 2D rectilinear grid
       h02D = coprocessor.CreateProducer(datadescription, 'input')
-
-      # create a new 'Parallel Image Data Writer'
       h02DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h02D)
       h02DWriter.FileName = 'h02D_%t.pvtu'
+      coprocessor.RegisterWriter(h02DWriter, filename=h02DWriter.FileName, freq=10)
 
-      # register the writer with coprocessor
-      # and provide it with information such as the filename to use,
-      # how frequently to write the data, etc.
-      coprocessor.RegisterWriter(h02DWriter, filename='h02D_%t.pvtu', freq=10)
-
-      # create a new 'NetCDF Reader'
-      # create a producer from a simulation input
+      # writer for 3D rectilinear grid
       h03D = coprocessor.CreateProducer(datadescription, 'input3D')
-
-      # create a new 'Parallel Rectilinear Grid Writer'
       h03DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h03D)
       h03DWriter.FileName = 'h03D_%t.pvtu'
+      coprocessor.RegisterWriter(h03DWriter, filename=h03DWriter.FileName, freq=10)
 
-      # register the writer with coprocessor
-      # and provide it with information such as the filename to use,
-      # how frequently to write the data, etc.
-      coprocessor.RegisterWriter(h03DWriter, filename='h03D_%t.pvtu', freq=10)
+      # writer for 2D spherical grid
+      h0s2D = coprocessor.CreateProducer(datadescription, 'sinput')
+      h0s2DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h0s2D)
+      h0s2DWriter.FileName = 'h0s2D_%t.pvtu'
+      coprocessor.RegisterWriter(h0s2DWriter, 
+                                 filename=h0s2DWriter.FileName, freq=10)
+
+      # writer for 3D spherical grid
+      h0s3D = coprocessor.CreateProducer(datadescription, 'sinput3D')
+      h0s3DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h0s3D)
+      h0s3DWriter.FileName = 'h0s3D_%t.pvtu'
+      coprocessor.RegisterWriter(h0s3DWriter, 
+                                 filename=h0s3DWriter.FileName, freq=10)
 
     return Pipeline()
 
@@ -57,7 +57,9 @@ def CreateCoProcessor():
   coprocessor = CoProcessor()
   # these are the frequencies at which the coprocessor updates.
   freqs = {'input': [10], 
-           'input3D': [10]}
+           'input3D': [10],
+           'sinput': [10], 
+           'sinput3D': [10]}
   coprocessor.SetUpdateFrequencies(freqs)
   return coprocessor
 

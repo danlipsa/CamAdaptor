@@ -20,7 +20,7 @@ module cam_catalyst_adapter
   !==========================================================================
 CONTAINS
   !==========================================================================
-
+  ! initializes Catalyst
   subroutine catalyst_init()
 
     !-----------------------------------------------------------------------
@@ -37,6 +37,9 @@ CONTAINS
   end subroutine catalyst_init
 
   !===========================================================================  
+  ! Creates four grids for storing data. While all grids are unstructured,
+  ! the data are 2D rectilinear, 2D structured (sphere), 3D rectilinear,
+  ! 3D structured (sphere)
   function catalyst_create_grid(nstep, time, dim, &
        lonCoord, latCoord, levCoord, nPoints2D, myRank) result(continueProcessing)
     use ppgrid,       only: pver
@@ -73,6 +76,9 @@ CONTAINS
   end function catalyst_create_grid
 
   !===========================================================================  
+  ! Add a chunk of data to the grid. Makes conversions from
+  ! multi-dimensional arrays to uni-dimensional arrays so that the arrays are
+  ! received correctly in C++
   subroutine catalyst_add_chunk(nstep, time, phys_state, ncols)
     use ppgrid,       only: pver
     !-----------------------------------------------------------------------
@@ -110,7 +116,9 @@ CONTAINS
          transfer(phys_state%u, uTransVar), &
          transfer(phys_state%v, vTransVar))
   end subroutine catalyst_add_chunk
+
   !===========================================================================  
+  ! Coprocesses data
   subroutine catalyst_coprocess(nstep, time)
     use ppgrid,       only: pver
     !-----------------------------------------------------------------------
@@ -126,7 +134,8 @@ CONTAINS
     call cxx_coprocess()
   end subroutine catalyst_coprocess
 
-!==============================================================================
+  !==============================================================================
+  ! Releases allocated memory
   subroutine catalyst_finalize()
 
     !-----------------------------------------------------------------------

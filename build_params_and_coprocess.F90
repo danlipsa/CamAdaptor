@@ -1,6 +1,7 @@
-! This routine uses modules and variables from cam5 which is an executable,
+! Creates the grid (if necessary), copies the data into Catalyst and
+! calls coprocess
+! This routine uses functions and variables from cam5 which is an executable,
 ! so this routine must be linked in.
-
 subroutine build_params_and_coprocess(phys_state)
   use time_manager, only: get_nstep, get_curr_time
   use dyn_grid,     only: get_horiz_grid_dim_d, get_dyn_grid_parm_real1d, &
