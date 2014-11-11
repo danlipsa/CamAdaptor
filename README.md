@@ -5,20 +5,24 @@ To build CAM5 and the adapter:
 1. Download CESM (Community Earth System Model) using instructions in:
 
     <http://www.cesm.ucar.edu/models/cesm1.2/cesm/doc/usersguide/book1.html>
-        
-   and CAM5 (Community Atmosphere Model) data using instructions in:
-   
-   <http://www.cesm.ucar.edu/models/cesm1.2/cam/docs/ug5_3/ug.html>
+
+    and cam\_catalyst\_adapter from:
+    
+    Store cam_catalyst_adapter in ~/cesm\_1\_2\_1/models/atm/cam directory.
 
 2. Modify configure-cam.sh, gen-cam.sh, build-namelist.sh such that
    CAM\_ROOT points to the location for cesm1_2_1 sources.
    The scripts assume that cesm1\_2\_1 is stored in ~/src/cesm\_1\_2\_1
+   Apply cesm_1_2_1.patch to the cesm code.
 
 3. Create a CAM5 build directory, cd into it and configure it:
 
         mkdir ~/build/cam-5.3
         cd ~/build/cam-5.3
         ~/src/cesm1_2_1/models/atm/cam/cam_catalyst_adapter/configure-cam.sh
+
+    Note you have to configure the number of MPI processors and use the same
+    number when you run the simulation.
 
 4. Try building CAM5. This step creates mod files used by the adapter.
 
@@ -80,7 +84,7 @@ adapter:
    
    <http://www.cesm.ucar.edu/models/cesm1.2/cam/docs/ug5_3/hist_flds_fv_cam5.html>
 
-8. If you want to debug some files in the simulation you need to run
+8. Optional: If you want to debug certain pio files in the simulation run:
 
         ~/src/cesm1_2_1/models/atm/cam/cam_catalyst_adapter/gen-cam.sh d
 
