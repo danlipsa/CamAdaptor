@@ -1,5 +1,14 @@
 This project provides a ParaView Catalyst adaptor for CAM5 simulation.
 
+Useful documentation:
+
+* <http://www.cesm.ucar.edu/models/cesm1.2/cam/docs/ug5_3/ug.html>
+* <http://www.cesm.ucar.edu/cgi-bin/eaton/namelist/nldef2html-cam5_3>
+* <http://www.cesm.ucar.edu/models/cesm1.2/cesm/doc/usersguide/book1.html>
+* <http://www.cesm.ucar.edu/models/cesm1.2/cesm/doc/modelnl/env_run.html>
+* <http://www.cesm.ucar.edu/models/pio/decomp.html>
+* <http://www.cesm.ucar.edu/models/pio/_c_a_mexample.html>
+
 To build CAM5 and the adapter:
 
 1. Download CESM (Community Earth System Model) using instructions in:
