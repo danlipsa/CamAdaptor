@@ -13,7 +13,7 @@ camcfg=$CAM_ROOT/models/atm/cam/bld
 
 # SPMD (mpi) Finite Volume
 # fv, cam5, trop_mam3
-#$camcfg/configure -fc mpif90 -fc_type gnu -cc mpicc -dyn fv -hgrid 10x15 -ntasks 2 -debug -nosmp -catalyst -test
+$camcfg/configure -fc mpif90 -fc_type gnu -cc mpicc -dyn fv -hgrid 10x15 -ntasks 2 -debug -nosmp -catalyst -test
 
 # SPMD (mpi)
 # fv, cam5, trop_mam3
@@ -22,7 +22,7 @@ camcfg=$CAM_ROOT/models/atm/cam/bld
 
 # SPMD (mpi) Finite Volume
 # fv, cam5, trop_mam3
-$camcfg/configure -fc mpif90 -fc_type gnu -cc mpicc -dyn fv -hgrid 2.5x3.33 -ntasks 8 -debug -nosmp -catalyst -test
+#$camcfg/configure -fc mpif90 -fc_type gnu -cc mpicc -dyn fv -hgrid 2.5x3.33 -ntasks 8 -debug -nosmp -catalyst -test
 
 
 # SPMD (mpi) Spectral Element

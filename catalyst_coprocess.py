@@ -56,10 +56,10 @@ def CreateCoProcessor():
 
   coprocessor = CoProcessor()
   # these are the frequencies at which the coprocessor updates.
-  freqs = {'input': [336], 
-           'input3D': [336],
-           'sinput': [336], 
-           'sinput3D': [336]}
+  freqs = {'input': [336, 1], 
+           'input3D': [336, 1],
+           'sinput': [336, 1], 
+           'sinput3D': [336, 1]}
   coprocessor.SetUpdateFrequencies(freqs)
   return coprocessor
 
@@ -72,7 +72,7 @@ coprocessor = CreateCoProcessor()
 
 #--------------------------------------------------------------
 # Enable Live-Visualizaton with ParaView
-coprocessor.EnableLiveVisualization(False, 1)
+coprocessor.EnableLiveVisualization(True, 1)
 
 
 # ---------------------- Data Selection method ----------------------
