@@ -1,0 +1,158 @@
+module fv_catalyst_adapter
+  use shr_kind_mod,    only: r8 => SHR_KIND_R8
+  use physics_types,    only: physics_state
+  use ppgrid,       only: pcols
+
+  !
+  ! !PUBLIC TYPES:
+  implicit none
+  save
+  private ! except
+
+  !--------------------------------------------------------------------------
+  ! Public interfaces
+  !--------------------------------------------------------------------------
+
+  public :: catalyst_init, fv_catalyst_coprocess, fv_catalyst_create_grid,&
+       fv_catalyst_add_chunk, catalyst_finalize
+  interface
+     logical function  fv_requestdatadescription(timeStep, time)
+       integer, intent(in) :: timeStep
+       real(8), intent(in)    :: time
+     end function  fv_requestdatadescription
+     logical function  fv_needtocreategrid()
+     end function  fv_needtocreategrid
+  end interface
+
+
+  !
+  !==========================================================================
+CONTAINS
+  !==========================================================================
+  ! initializes Catalyst
+  subroutine catalyst_init()
+
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+
+    !
+    ! Locals
+    !
+    write(*,'(a)') "catalyst_init"
+    call fv_coprocessorinitializewithpython(&
+         "@CMAKE_BINARY_DIR@/fv_coprocess.py"//CHAR(0))
+  end subroutine catalyst_init
+
+  !===========================================================================  
+  ! Creates four grids for storing data. While all grids are unstructured,
+  ! the data is 2D rectilinear, 2D structured (sphere), 3D rectilinear,
+  ! 3D structured (sphere)
+  function fv_catalyst_create_grid(nstep, time, dim, &
+       lonCoord, latCoord, levCoord, nPoints2D, myRank) result(continueProcessing)
+    use ppgrid,       only: pver
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+    integer, intent(in)                :: nstep ! current timestep number
+    real(kind=8),intent(in)            :: time  ! current time
+    integer, dimension(1:3),intent(in) :: dim   ! dimensions: lon, lat, lev
+    real(r8), allocatable,intent(in)   :: lonCoord(:)
+    real(r8), pointer, intent(in)      :: latCoord(:)
+    real(r8),intent(in)                :: levCoord(pver)
+    integer, intent(in)                :: nPoints2D
+    integer, intent(in)                :: myRank
+    logical                            :: continueProcessing
+    !
+    ! Locals
+    !
+    integer                            :: i,c,j ! indexes
+    real(r8)                 :: transvar(1)
+
+    write(*,'(a, i5.2, f5.2)') "fv_catalyst_create_grid: ", nstep, time
+    if (fv_requestdatadescription(nstep, time)) then
+       continueProcessing = .true.
+       if (fv_needtocreategrid()) then
+          call fv_create_grid(dim, lonCoord, latCoord, levCoord, nPoints2D, &
+               pcols, myRank)
+       end if
+    else
+       continueProcessing = .false.
+    end if
+  end function fv_catalyst_create_grid
+
+  !===========================================================================  
+  ! Add a chunk of data to the grid. Makes conversions from
+  ! multi-dimensional arrays to uni-dimensional arrays so that the arrays are
+  ! received correctly in C++
+  subroutine fv_catalyst_add_chunk(nstep, time, phys_state, ncols)
+    use ppgrid,       only: pver
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+    integer, intent(in)                :: nstep ! current timestep number
+    real(kind=8),intent(in)            :: time  ! current time
+    type(physics_state), intent(in)    :: phys_state
+    integer, intent(in)                :: ncols
+    !
+    ! Locals
+    !
+    integer                            :: i,c,j ! indexes
+    real(r8)                           :: psTransVar(1), tTransVar(1), &
+         uTransVar(1), vTransVar(1)
+
+    write(*, "(A, I4, A, I4,  A, I4, A, I4, A, I4)") &
+         "fv_catalyst_add_chunk: lchnk=", phys_state%lchnk, &
+         " ncols=", ncols, &
+         " size(lon)=", size(phys_state%lon), &
+         " size(lat)=", size(phys_state%lat), &
+         " size(ps,1)=",  size(phys_state%ps, 1),  &
+         " size(t)=",   size(phys_state%t)
+    call fv_add_chunk(nstep, ncols, &
+         phys_state%lon, phys_state%lat, &
+         transfer(phys_state%ps, psTransVar), &
+         transfer(phys_state%t, tTransVar), &
+         transfer(phys_state%u, uTransVar), &
+         transfer(phys_state%v, vTransVar))
+  end subroutine fv_catalyst_add_chunk
+
+  !===========================================================================  
+  ! Coprocesses data
+  subroutine fv_catalyst_coprocess(nstep, time)
+    use ppgrid,       only: pver
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+    integer, intent(in)                :: nstep ! current timestep number
+    real(kind=8),intent(in)            :: time  ! current time
+    !
+    ! Locals
+    !
+    write(*,'(a, i5.2, f5.2)') "fv_catalyst_coprocess: ", nstep, time
+    call fv_coprocess()
+  end subroutine fv_catalyst_coprocess
+
+  !==============================================================================
+  ! Releases allocated memory
+  subroutine catalyst_finalize()
+
+    !-----------------------------------------------------------------------
+    !
+    ! Arguments
+    !
+
+    !
+    ! Locals
+    !
+    write(*,'(a)') "catalyst_finalize"
+    call fv_finalize()
+    call fv_coprocessorfinalize()
+ end subroutine catalyst_finalize
+
+!==============================================================================
+
+end module fv_catalyst_adapter

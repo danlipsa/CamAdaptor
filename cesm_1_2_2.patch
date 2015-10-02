@@ -1,16 +1,3 @@
-Index: scripts/ccsm_utils/Case.template/ConfigCase.pm
-===================================================================
---- scripts/ccsm_utils/Case.template/ConfigCase.pm	(revision 65288)
-+++ scripts/ccsm_utils/Case.template/ConfigCase.pm	(working copy)
-@@ -445,7 +445,7 @@
- 	if ($group =~ /component/) {
- 	    foreach my $comp ( @comps ) {
- 		$comp =~ s/\'//g; # get rid of quotes in $comp
--		foreach my $model qw(COMP_ATM COMP_LND COMP_ICE COMP_OCN COMP_GLC COMP_ROF COMP_WAV) {
-+		foreach my $model (qw(COMP_ATM COMP_LND COMP_ICE COMP_OCN COMP_GLC COMP_ROF COMP_WAV)) {
- 		    if ($self->get($model) eq $comp) {
- 			my $groupname = $group . "_$comp";
- 			if (($format eq "xml") || ($filename =~ m/xml/)) {
 Index: models/atm/cam/bld/Makefile.in
 ===================================================================
 --- models/atm/cam/bld/Makefile.in	(revision 65288)
@@ -119,7 +106,7 @@ Index: models/atm/cam/src/cpl_mct/atm_comp_mct.F90
    use phys_control     , only: cam_chempkg_is
    use scamMod          , only: single_column,scmlat,scmlon
 +#if (defined CATALYST )
-+  use cam_catalyst_adapter  , only: catalyst_init, catalyst_finalize
++  use fv_catalyst_adapter  , only: catalyst_init, catalyst_finalize
 +#endif
  
  !
@@ -157,7 +144,7 @@ Index: models/atm/cam/src/physics/cam/physpkg.F90
  end subroutine phys_init
  
 +#if (defined CATALYST)
-+include "build_params_and_coprocess.F90"
++include "fv_add_and_coprocess.F90"
 +#endif
 +
 +
@@ -169,7 +156,7 @@ Index: models/atm/cam/src/physics/cam/physpkg.F90
      end if
  
 +#if (defined CATALYST )
-+    call build_params_and_coprocess(phys_state);
++    call fv_add_and_coprocess(phys_state);
 +#endif
 +
  end subroutine phys_run1

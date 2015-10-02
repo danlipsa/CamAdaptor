@@ -26,27 +26,27 @@ def CreateCoProcessor():
       h02D = coprocessor.CreateProducer(datadescription, 'input')
       h02DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h02D)
       h02DWriter.FileName = 'h02D_%t.pvtu'
-      coprocessor.RegisterWriter(h02DWriter, filename=h02DWriter.FileName, freq=336)
+      coprocessor.RegisterWriter(h02DWriter, filename=h02DWriter.FileName, freq=48)
 
       # writer for 3D rectilinear grid
       h03D = coprocessor.CreateProducer(datadescription, 'input3D')
       h03DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h03D)
       h03DWriter.FileName = 'h03D_%t.pvtu'
-      coprocessor.RegisterWriter(h03DWriter, filename=h03DWriter.FileName, freq=336)
+      coprocessor.RegisterWriter(h03DWriter, filename=h03DWriter.FileName, freq=48)
 
       # writer for 2D spherical grid
       h0s2D = coprocessor.CreateProducer(datadescription, 'sinput')
       h0s2DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h0s2D)
       h0s2DWriter.FileName = 'h0s2D_%t.pvtu'
       coprocessor.RegisterWriter(h0s2DWriter, 
-                                 filename=h0s2DWriter.FileName, freq=336)
+                                 filename=h0s2DWriter.FileName, freq=48)
 
       # writer for 3D spherical grid
       h0s3D = coprocessor.CreateProducer(datadescription, 'sinput3D')
       h0s3DWriter = servermanager.writers.XMLPUnstructuredGridWriter(Input=h0s3D)
       h0s3DWriter.FileName = 'h0s3D_%t.pvtu'
       coprocessor.RegisterWriter(h0s3DWriter, 
-                                 filename=h0s3DWriter.FileName, freq=336)
+                                 filename=h0s3DWriter.FileName, freq=48)
 
     return Pipeline()
 
@@ -56,10 +56,10 @@ def CreateCoProcessor():
 
   coprocessor = CoProcessor()
   # these are the frequencies at which the coprocessor updates.
-  freqs = {'input': [336, 1], 
-           'input3D': [336, 1],
-           'sinput': [336, 1], 
-           'sinput3D': [336, 1]}
+  freqs = {'input': [24], 
+           'input3D': [24],
+           'sinput': [24], 
+           'sinput3D': [24]}
   coprocessor.SetUpdateFrequencies(freqs)
   return coprocessor
 

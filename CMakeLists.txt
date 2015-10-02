@@ -14,9 +14,20 @@ endif()
 set(CAM_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/../" CACHE PATH "Path to CAM build directory")
 include_directories(${CAM_BUILD_DIR})
 
-configure_file(catalyst_coprocess.py catalyst_coprocess.py COPYONLY)
-string(LENGTH ${CMAKE_CURRENT_BINARY_DIR} BINARY_DIR_LENGTH)
-configure_file(cam_catalyst_adapter.F90.in cam_catalyst_adapter.F90)
+# coprocessor scripts
+configure_file(fv_coprocess.py fv_coprocess.py COPYONLY)
+configure_file(se_coprocess.py se_coprocess.py COPYONLY)
 
-ADD_LIBRARY(cam_catalyst_adapter SHARED ${CMAKE_CURRENT_BINARY_DIR}/cam_catalyst_adapter.F90 create_data.cxx)
+string(LENGTH ${CMAKE_CURRENT_BINARY_DIR} BINARY_DIR_LENGTH)
+
+# dynamic module specific adapters
+configure_file(fv_catalyst_adapter.F90.in fv_catalyst_adapter.F90)
+configure_file(se_catalyst_adapter.F90.in se_catalyst_adapter.F90)
+
+ADD_LIBRARY(cam_catalyst_adapter SHARED 
+  Grid.cxx
+  ${CMAKE_CURRENT_BINARY_DIR}/fv_catalyst_adapter.F90
+  fv_create_data.cxx
+  ${CMAKE_CURRENT_BINARY_DIR}/se_catalyst_adapter.F90
+  se_create_data.cxx)
 TARGET_LINK_LIBRARIES(cam_catalyst_adapter vtkPVPythonCatalyst ${MPI_Fortran_LIBRARIES})

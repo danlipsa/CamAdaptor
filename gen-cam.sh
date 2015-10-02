@@ -1,5 +1,5 @@
 #! /bin/bash
-CAM_ROOT=~/src/cesm1_2_1
+CAM_ROOT=~/src/cesm1_2_2
 GENF90=$CAM_ROOT/tools/cprnc/genf90/genf90.pl
 files="box_rearrange.F90
 piodarray.F90
